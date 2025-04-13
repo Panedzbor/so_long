@@ -5,6 +5,7 @@
         "keysymdef.h": "c",
         "so_long.h": "c",
         "libft.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "fcntl.h": "c"
     }
 }
