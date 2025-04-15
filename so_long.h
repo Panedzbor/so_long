@@ -38,8 +38,10 @@ typedef struct s_gamedata
     void    *exitopen[5];
     void    *main_character[5];
     void    *enemy1[5];
+    void    *enemy2[5];
     int     player_position;
     int     enemy1_position;
+    int     enemy2_position;
     int     movements;
 } t_gamedata;
 

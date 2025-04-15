@@ -35,10 +35,13 @@ int	valid_amount(t_gamedata *gd);
 void	sl_init_ints(int *a, int *b, int *c, int *d);
 bool	valid_chars(t_gamedata *gd);
 void	win_game(t_gamedata *gd);
-int	background_animation(t_gamedata *gd);
+int	background_activities(t_gamedata *gd);
 int	count_collectibles(t_gamedata *gd);
 void	destroy_frames(t_gamedata *gd, void **sprite, int frames);
-void	enemy_move(void *sprite, t_gamedata *gd);
+void	enemy_move(char enemy, t_gamedata *gd);
+void	check_if_lost(t_gamedata *gd);
+void	place_enemies(t_gamedata *gd);
+void	display_score(t_gamedata *gd);
 
 int main(int argc, char *argv[])
 {
@@ -79,8 +82,10 @@ void	init_gamedata(t_gamedata *gd)
 	ft_bzero(&gd->exitopen, sizeof(gd->exitopen));
 	ft_bzero(&gd->main_character, sizeof(gd->main_character));
 	ft_bzero(&gd->enemy1, sizeof(gd->enemy1));
+	ft_bzero(&gd->enemy2, sizeof(gd->enemy2));
 	gd->player_position = 0;
 	gd->enemy1_position = 0;
+	gd->enemy2_position = 0;
 	gd->movements = 0;
 }
 
@@ -91,56 +96,96 @@ void	launch_game(t_gamedata *gd)
 	compare_mapsize_and_screensize(gd);
 	gd->win_ptr = mlx_new_window(gd->mlx_ptr, gd->map_width_px, gd->map_height_px, "Kolobok's Breakout");
 	draw_map(gd);
+	display_score(gd);
 	display_sprites(gd);
 	mlx_key_hook(gd->win_ptr, key_hook, gd);
 	//mlx_mouse_hook(gd->win_ptr, mouse_hook, gd);
 	mlx_hook(gd->win_ptr, 17, 0, exit_game, gd);
-	mlx_loop_hook(gd->mlx_ptr, background_animation, gd);
+	mlx_loop_hook(gd->mlx_ptr, background_activities, gd);
 	mlx_loop(gd->mlx_ptr);
 
 }
 
-int	background_animation(t_gamedata *gd)
+int	background_activities(t_gamedata *gd)
 {
 	static int counter;
+	static int counter2;
 
-	if (counter == 5000)
+	if (counter2 == 5000)
 	{
-		enemy_move(gd->enemy1, gd);
+		enemy_move('N', gd);
+		check_if_lost(gd);
+		enemy_move('n', gd);
+		check_if_lost(gd);
+		counter2 = 0;
 	}
 
-	if (counter == 20000)
+	if (counter == 2000)
 	{
 		//ft_printf("animation\n");
 		draw_map(gd);
+		display_score(gd);
 		display_sprites(gd);
 		counter = 0;
 	}
 	counter++;
+	counter2++;
 	return (0);
 }
 
-void	enemy_move(void *sprite, t_gamedata *gd)
+void	display_score(t_gamedata *gd)
 {
-	static int direction;
+	char *num;
+	char *str;
+	
+	num = ft_itoa(gd->movements);
+	str = ft_strjoin("Moves: ", num);
+	free(num);
+	mlx_set_font(gd->mlx_ptr, gd->win_ptr, "10x20");
+	mlx_string_put(gd->mlx_ptr, gd->win_ptr, 50, 30, 0xFF0000, str);
+	free(str);
+}
+
+void	enemy_move(char enemy, t_gamedata *gd)
+{
+	static int direction1;
+	static int direction2;
 	int	uprightdownleft[4];
 	int	random;
+	int	next_position;
 
 	uprightdownleft[0] = -(gd->map_width + 1);
 	uprightdownleft[1] = 1;
 	uprightdownleft[2] = (gd->map_width + 1);
 	uprightdownleft[3] = -1;
 	random = rand() % 4;
-	if (!direction)
-		direction = uprightdownleft[random];
-	if (gd->map[gd->enemy1_position + direction] != '1' && gd->map[gd->enemy1_position + direction] != 'C')
-	{
-		gd->map[gd->enemy1_position + direction] = 'N';
-		gd->map[gd->enemy1_position] = '0';
-		gd->enemy1_position += direction;
-	}
+	if (!direction1)
+		direction1 = uprightdownleft[random];
+	if (!direction2)
+		direction2 = uprightdownleft[random];
+	if (enemy == 'N')
+		next_position = gd->enemy1_position + direction1;
 	else
-		direction = uprightdownleft[random];
+		next_position = gd->enemy2_position + direction2;
+	if (gd->map[next_position] == '0' || gd->map[next_position] == 'P')
+	{
+		if (enemy == 'N')
+		{	gd->map[gd->enemy1_position + direction1] = enemy;
+			gd->map[gd->enemy1_position] = '0';
+			gd->enemy1_position += direction1;}
+		else
+		{
+			gd->map[gd->enemy2_position + direction2] = enemy;
+			gd->map[gd->enemy2_position] = '0';
+			gd->enemy2_position += direction2;}
+		}
+	else
+	{
+		if (enemy == 'N')
+			direction1 = uprightdownleft[random];
+		else
+			direction2 = uprightdownleft[random];
+	}
 }
 
 int	exit_game(t_gamedata *gd)
@@ -150,6 +195,7 @@ int	exit_game(t_gamedata *gd)
 		//mlx_destroy_image(gd->mlx_ptr, gd->main_character[0]);
 		destroy_frames(gd, gd->main_character, 5);
 		destroy_frames(gd, gd->enemy1, 5);
+		destroy_frames(gd, gd->enemy2, 5);
 		mlx_destroy_image(gd->mlx_ptr, gd->wall);
 		mlx_destroy_image(gd->mlx_ptr, gd->wall_hor);
 		mlx_destroy_image(gd->mlx_ptr, gd->free_space);
@@ -195,6 +241,7 @@ int key_hook(int keycode, void *gd)
 		recalculate_map(gd, move);
 		//draw_map(gd);
 		//display_sprites(gd);
+		check_if_lost(gd);
 		((t_gamedata*)gd)->movements++;
 		ft_printf("Current number of movements: %d\n", ((t_gamedata*)gd)->movements);
 		if (check_if_completed(((t_gamedata*)gd)->map))
@@ -205,9 +252,27 @@ int key_hook(int keycode, void *gd)
 	return (0);
 }
 
+void	check_if_lost(t_gamedata *gd)
+{
+	if (!ft_strchr(gd->map, 'P')/*  || !ft_strchr(gd->map, 'N') || !ft_strchr(gd->map, 'n') */)	
+	{
+		ft_printf("LOSE!\n");
+		draw_map(gd);
+		display_score(gd);
+		display_sprites(gd);
+		mlx_set_font(gd->mlx_ptr, gd->win_ptr, "10x20");
+		mlx_string_put(gd->mlx_ptr, gd->win_ptr, (gd->map_width_px / 2) - (ft_strlen("YOU LOSE!") / 2), 30, 0xFF0000, "YOU LOSE!");
+		mlx_do_sync(gd->mlx_ptr);  // Force update of the display
+		sleep(5);  // Now sleep while message is visible
+		
+		// End the loop after displaying for 5 seconds
+		mlx_loop_end(gd->mlx_ptr);
+		exit_game(gd);}
+}
+
 void	win_game(t_gamedata *gd)
 {
-	char	*score_str;
+/* 	char	*score_str;
 	char	*score;
 
 	mlx_string_put(gd->mlx_ptr, gd->win_ptr, 100, 100, 0xFFFFFF, "YOU WIN!");
@@ -215,7 +280,18 @@ void	win_game(t_gamedata *gd)
 	score_str = ft_strjoin("Score: ", score);
 	mlx_string_put(gd->mlx_ptr, gd->win_ptr, 100, 110, 0xFFFFFF, score_str);
 	free(score);
-	free(score_str);
+	free(score_str); */
+
+	draw_map(gd);
+	display_score(gd);
+	display_sprites(gd);
+	mlx_set_font(gd->mlx_ptr, gd->win_ptr, "10x20");
+	mlx_string_put(gd->mlx_ptr, gd->win_ptr, (gd->map_width_px / 2) - (ft_strlen("YOU WIN!") / 2), 30, 0xFF0000, "YOU WIN!");
+	mlx_do_sync(gd->mlx_ptr);  // Force update of the display
+    sleep(5);  // Now sleep while message is visible
+    
+    // End the loop after displaying for 5 seconds
+    mlx_loop_end(gd->mlx_ptr);
 	exit_game(gd);
 }
 
@@ -274,13 +350,13 @@ void	choose_sprite_to_display(t_gamedata *gd, int i, int j)
 	int	offset;
 	static int	dir;
 	static int counter;
-	static bool redrawn[4];
+	static bool redrawn[5];
 	static int counter_col;
 
 	/* coordinates[0] = i;
 	coordinates[1] = j; */
 	offset = j + i * (gd->map_width + 1);
-	if (gd->map[offset] == 'P' || gd->map[offset] == 'C' || gd->map[offset] == 'E' || gd->map[offset] == 'N')
+	if (gd->map[offset] != '0' && gd->map[offset] != '1')
 	{
 		if (!ft_strchr(gd->map, 'C'))
 			redrawn[1] = true;
@@ -295,6 +371,11 @@ void	choose_sprite_to_display(t_gamedata *gd, int i, int j)
 		{
 			display_without_background(gd->enemy1[counter], gd, i, j);//background color not needed
 			redrawn[3] = true;
+		}
+		else if (gd->map[offset] == 'n')
+		{
+			display_without_background(gd->enemy2[counter], gd, i, j);//background color not needed
+			redrawn[4] = true;
 		}
 		else if (gd->map[offset] == 'C')
 		{
@@ -311,12 +392,12 @@ void	choose_sprite_to_display(t_gamedata *gd, int i, int j)
 			display_without_background(gd->exitopen[counter], gd, i, j);
 			redrawn[2] = true;
 		}
-		if (!dir && redrawn[0] && redrawn[1] && redrawn[2] && redrawn[3])
+		if (!dir && redrawn[0] && redrawn[1] && redrawn[2] && redrawn[3] && redrawn[4])
 		{
 			counter++;
 			ft_bzero(redrawn, sizeof(redrawn));
 		}
-		else if (dir && redrawn[0] && redrawn[1] && redrawn[3])
+		else if (dir && redrawn[0] && redrawn[1] && redrawn[3] && redrawn[4])
 		{
 			counter--;
 			ft_bzero(redrawn, sizeof(redrawn));
@@ -384,6 +465,11 @@ void	set_sprites(t_gamedata *gd)
 	gd->enemy1[2] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/ded2.xpm", &dummy, &dummy);
 	gd->enemy1[3] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/ded3.xpm", &dummy, &dummy);
 	gd->enemy1[4] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/ded4.xpm", &dummy, &dummy);
+	gd->enemy2[0] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/baba.xpm", &dummy, &dummy);
+	gd->enemy2[1] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/baba1.xpm", &dummy, &dummy);
+	gd->enemy2[2] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/baba2.xpm", &dummy, &dummy);
+	gd->enemy2[3] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/baba3.xpm", &dummy, &dummy);
+	gd->enemy2[4] = mlx_xpm_file_to_image(gd->mlx_ptr, "./my_assets/baba4.xpm", &dummy, &dummy);
 }
 
 void	draw_map(t_gamedata *gd)
@@ -474,10 +560,32 @@ void	parse_map(t_gamedata *gd)
 	extract_map(gd);
 	get_map_dimensions(gd);
 	gd->player_position = (int)(ft_strchr(gd->map, 'P') - gd->map);
-	gd->enemy1_position = (int)(ft_strchr(gd->map, 'N') - gd->map);
 	error = validate_map(gd);
 	if (error)
 		terminate_game(gd,error);
+	place_enemies(gd);
+}
+
+void	place_enemies(t_gamedata *gd)
+{
+	int	pos;
+
+	while (true)
+	{
+		pos = rand() % (gd->map_width * gd->map_height);
+		if (gd->map[pos] == '0')
+			break ;
+	}
+	gd->map[pos] = 'N';
+	gd->enemy1_position = pos;
+	while (true)
+	{
+		pos = rand() % (gd->map_width * gd->map_height);
+		if (gd->map[pos] == '0')
+			break ;
+	}
+	gd->map[pos] = 'n';
+	gd->enemy2_position = pos;
 }
 
 void	terminate_game(t_gamedata *gd, int error)
@@ -651,7 +759,7 @@ bool	valid_chars(t_gamedata *gd)
 	const char	*allowed_chars;
 	int	i;
 
-	allowed_chars = "01CEPN\n"; //N only for bonus!!!
+	allowed_chars = "01CEP\n"; //N only for bonus!!!
 	i = 0;
 	while (gd->map[i])
 	{
