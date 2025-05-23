@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   main_bonus.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: earutiun <earutiun@student.42berlin.d      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "so_long.h"
+#include "so_long_bonus.h"
 
 void	parse_map(t_gamedata *gd);
 void	launch_game(t_gamedata *gd);
@@ -24,6 +24,7 @@ int	main(int argc, char *argv[])
 		ft_printf("Error\nProgram expects one argument\n");
 		exit(0);
 	}
+	srand(time(NULL));
 	init_gamedata(&gd);
 	gd.map_file_name = (const char *)argv[1];
 	parse_map(&gd);
@@ -39,6 +40,7 @@ void	launch_game(t_gamedata *gd)
 	gd->win_ptr = mlx_new_window(gd->mlx_ptr, gd->map_width_px,
 			gd->map_height_px, "Kolobok's Breakout");
 	draw_map(gd);
+	display_score(gd);
 	display_sprites(gd);
 	mlx_key_hook(gd->win_ptr, key_hook, gd);
 	mlx_hook(gd->win_ptr, 17, 0, exit_game, gd);
@@ -56,4 +58,5 @@ void	parse_map(t_gamedata *gd)
 	error = validate_map(gd);
 	if (error)
 		terminate_game(gd, error);
+	place_enemies(gd);
 }

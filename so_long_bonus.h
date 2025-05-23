@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   so_long.h                                          :+:      :+:    :+:   */
+/*   so_long_bonus.h                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: earutiun <earutiun@student.42berlin.d      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SO_LONG_H
-# define SO_LONG_H
+#ifndef SO_LONG_BONUS_H
+# define SO_LONG_BONUS_H
 
 # include <mlx.h>
 # include <stdlib.h>
@@ -20,6 +20,7 @@
 # include "libft/libft.h"
 # include <X11/keysymdef.h>
 # include <math.h>
+# include <time.h>
 
 # define TILE_WDTH 48
 
@@ -40,11 +41,15 @@ typedef struct s_gamedata
 	void		*wall;
 	void		*wall_hor;
 	void		*free_space;
-	void		*collectible;
+	void		*collectible[5];
 	void		*exit;
-	void		*exitopen;
-	void		*main_character;
+	void		*exitopen[5];
+	void		*main_character[5];
+	void		*enemy1[5];
+	void		*enemy2[5];
 	int			player_position;
+	int			enemy1_position;
+	int			enemy2_position;
 	int			movements;
 }	t_gamedata;
 
