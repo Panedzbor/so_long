@@ -22,7 +22,7 @@ int	background_activities(t_gamedata *gd)
 	static int	counter;
 	static int	counter2;
 
-	if (counter2 == 40000)
+	if (counter2 == 10000)
 	{
 		enemy_move('N', gd);
 		check_if_lost(gd);
